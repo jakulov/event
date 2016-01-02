@@ -26,7 +26,7 @@ Config could look like this:
     $dispatcher->setConfig($config);
     
     
-Link to container library: (jakulov/container)[https://packagist.org/packages/jakulov/container]
+Link to container library: [jakulov/container](https://packagist.org/packages/jakulov/container)
 
 Using addListener is more usual way:
 
@@ -34,7 +34,7 @@ Using addListener is more usual way:
     $dispatcher = new \jakulov\Event\EventDispatcher();
     $dispatcher->addListener($event->getName(), $listener);
     
-Also dispatcher requires a Logger instance, implementing (Psr Log)[https://packagist.org/packages/psr/log]
+Also dispatcher requires a Logger instance, implementing [Psr Log](https://packagist.org/packages/psr/log)
 If don't need in logging events, just do this:
 
     $dispatcher = new \jakulov\Event\EventDispatcher();
