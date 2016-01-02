@@ -44,8 +44,9 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
     {
         $this->events = [];
         foreach($config as $eventName => $listeners) {
+            $this->events[$eventName] = [];
             foreach($listeners as $listener) {
-                $this->events[$this->getListenerKeyHash($listener)] = $listener;
+                $this->events[$eventName][] = $listener;
             }
         }
     }
@@ -62,8 +63,10 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
             if(!isset($sorted[$priority])) {
                 $sorted[$priority] = [];
             }
-            $sorted[$priority][$this->getListenerKeyHash($listener)] = $listener;
+            $sorted[$priority][] = $listener;
         }
+
+        krsort($sorted);
 
         return $sorted;
     }
@@ -108,7 +111,7 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
     {
         return str_replace(
             PHP_EOL, ' ',
-            print_r( is_array($listener) ? array_slice($listener, 0, 2) : $listener, 1)
+            is_array($listener) ? print_r(array_slice($listener, 0, 2), 1) : var_export($listener, 1)
         );
     }
 
@@ -118,8 +121,9 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
      * @return EventInterface
      * @throws \jakulov\Container\ContainerException
      */
-    protected function callListener($listener, EventInterface $event = null) :
+    protected function callListener($listener, EventInterface $event = null)
     {
+        $listener = is_array($listener) ? array_slice($listener, 0, 2) : $listener;
         if(is_callable($listener)) {
             return call_user_func_array($listener, [$event, $this]);
         }
@@ -139,9 +143,8 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
     {
         if(!isset($this->sortedEvents[$eventName])) {
             $this->sortedEvents[$eventName] = $this->sortListeners(
-                isset($this->events[$eventName]) ? isset($this->events[$eventName]) : []
+                isset($this->events[$eventName]) ? $this->events[$eventName] : []
             );
-            ksort($this->sortedEvents[$eventName]);
 
             // debug logs
             $this->logger->debug(sprintf('Registering listeners of event "%s"...', $eventName));
@@ -158,29 +161,19 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
     }
 
     /**
-     * @param $listener
-     * @return string
-     */
-    protected function getListenerKeyHash($listener)
-    {
-        return base64_encode($this->dumpListener($listener));
-    }
-
-    /**
      * @param string $eventName
      * @param callable $listener
      * @param int $priority
      */
     public function addListener($eventName, $listener, $priority = 0)
     {
-        $key = $this->getListenerKeyHash($listener);
-        $this->events[$eventName][$key] = $listener;
+        $this->events[$eventName][] = $listener;
 
-        if(!$this->sortedEvents[$eventName]) {
+        if(!isset($this->sortedEvents[$eventName])) {
             $this->sortedEvents[$eventName] = [];
             $this->sortedEvents[$eventName][$priority] = [];
         }
-        $this->sortedEvents[$eventName][$priority][$key] = $listener;
+        $this->sortedEvents[$eventName][$priority][] = $listener;
 
         $this->logger->debug(
             sprintf('Registering listener %s of event "%s"', $this->dumpListener($listener) , $eventName)
@@ -210,13 +203,15 @@ class EventDispatcher implements EventDispatcherInterface, LoggerAwareInterface
      */
     public function removeListener($eventName, $listener)
     {
-        $key = $this->getListenerKeyHash($listener);
-
-        if(isset($this->events[$eventName][$key])) {
-            unset($this->events[$eventName][$key]);
+        if(isset($this->events[$eventName])) {
+            $key = array_search($listener, $this->events[$eventName], true);
+            if($key !== false) {
+                unset($this->events[$eventName][$key]);
+            }
         }
         if(isset($this->sortedEvents[$eventName])) foreach($this->sortedEvents[$eventName] as $p => $listeners) {
-            if(isset($listeners[$key])) {
+            $key = array_search($listener, $listeners, true);
+            if($key !== false) {
                 unset($this->sortedEvents[$eventName][$p][$key]);
             }
         }
