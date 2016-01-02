@@ -17,7 +17,8 @@
     "minimum-stability": "dev",
     "require": {
         "jakulov/psr_event": "dev-master",
-        "jakulov/container": "dev-master"
+        "jakulov/container": "dev-master",
+        "jakulov/corpuscle_log": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "^5.1"
